@@ -2,10 +2,10 @@
 Evaluate a model on ManiSkill2 environment.
 """
 
-# import debugpy
-# print("Waiting for debugger attach")
-# debugpy.listen(5681)
-# debugpy.wait_for_client()
+import debugpy
+print("Waiting for debugger attach")
+debugpy.listen(5681)
+debugpy.wait_for_client()
 
 import os
 import sys
@@ -102,7 +102,8 @@ def get_grasp_pose(task_description, intrinsic, object_mask, obj_pts_cam, sce_pt
         print('Grasp Inference Completed')
     except Exception as e:
         print(f"An error occurred: {e}")
-        
+    if gg_group is None:
+        return None, None
     print('len of gg_group', len(gg_group))
 
 
@@ -355,7 +356,11 @@ def sofar_execution(images, env, obs, obs_camera_name, task_description, additio
     except:
         return images, env , obs, None, None
     graspness_threshold = 0.01
-    gg_group, gg_goal_group = get_grasp_pose(task_description, intrinsic, object_mask, obj_pts_cam, sce_pts_cam, sce_pts_base, extrinsics, relative_translation_table, relative_rotation_table)
+    try:
+        gg_group, gg_goal_group = get_grasp_pose(task_description, intrinsic, object_mask, obj_pts_cam, sce_pts_cam, sce_pts_base, extrinsics, relative_translation_table, relative_rotation_table)
+    except Exception as e:
+        print(f'get_grasp_pose error {e}')
+        return images, env , obs, None, None
 
     init = np.array(obs['agent']['qpos'][:7]) 
     robot_urdf = ARM_URDF_FULL_GOOGLE_ROBOT
@@ -370,6 +375,8 @@ def sofar_execution(images, env, obs, obs_camera_name, task_description, additio
         robot_type = "google_robot",
     )
     
+    if gg_group is None:
+        return images, env, obs, None, None
 
     for i in range(len(gg_group)):
     # get the grasp pose and pose pose
